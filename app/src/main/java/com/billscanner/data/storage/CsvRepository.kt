@@ -48,7 +48,7 @@ class CsvRepository(private val context: Context) {
     }
 
     fun append(customers: List<ExtractedCustomer>): Int {
-        val existing = loadExistingPhones()
+        val existing = loadExistingPhones().toMutableSet()
         val file = getTodayFile()
         val isNew = !file.exists()
 

@@ -286,10 +286,11 @@ fun ScanScreen(
                     }
 
                     // Frame counter
-                    val frameCount = when (state) {
-                        is CaptureState.Processing -> state.frameCount
-                        is CaptureState.Captured -> state.frameCount
-                        is CaptureState.Error -> state.frameCount
+                    val currentState = state
+                    val frameCount = when (currentState) {
+                        is CaptureState.Processing -> currentState.frameCount
+                        is CaptureState.Captured -> currentState.frameCount
+                        is CaptureState.Error -> currentState.frameCount
                         else -> 0
                     }
                     Text(
