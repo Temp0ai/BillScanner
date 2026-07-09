@@ -98,6 +98,7 @@ fun ScanScreen(
                     .background(Color.Black)
             ) {
                 if (hasPermission && cameraError == null) {
+                    var cameraStarted by remember { mutableStateOf(false) }
                     AndroidView(
                         factory = { ctx ->
                             Log.d(TAG, "Creating PreviewView")
@@ -108,26 +109,27 @@ fun ScanScreen(
                                 )
                                 scaleType = PreviewView.ScaleType.FILL_CENTER
                             }
+                            if (!cameraStarted) {
+                                cameraStarted = true
+                                Log.d(TAG, "Starting camera")
+                                cameraManager.startCamera(
+                                    previewView = previewView,
+                                    lifecycleOwner = lifecycleOwner,
+                                    onFrameAvailable = { imageProxy ->
+                                        viewModel.initCamera()
+                                        viewModel.getCaptureUseCase()?.onFrame(imageProxy)
+                                    },
+                                    onError = { error ->
+                                        Log.e(TAG, "Camera error: $error")
+                                        cameraError = error
+                                    }
+                                )
+                            }
                             previewView
                         },
                         modifier = Modifier.fillMaxSize(),
                         onReset = {},
-                        onRelease = {},
-                        update = { previewView ->
-                            Log.d(TAG, "Starting camera")
-                            cameraManager.startCamera(
-                                previewView = previewView,
-                                lifecycleOwner = lifecycleOwner,
-                                onFrameAvailable = { imageProxy ->
-                                    viewModel.initCamera()
-                                    viewModel.getCaptureUseCase()?.onFrame(imageProxy)
-                                },
-                                onError = { error ->
-                                    Log.e(TAG, "Camera error: $error")
-                                    cameraError = error
-                                }
-                            )
-                        }
+                        onRelease = {}
                     )
                 }
 
