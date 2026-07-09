@@ -11,8 +11,7 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 class CameraManager(
-    private val context: Context,
-    private val lifecycleOwner: LifecycleOwner
+    private val context: Context
 ) {
     companion object {
         private const val TAG = "CameraManager"
@@ -26,6 +25,7 @@ class CameraManager(
 
     fun startCamera(
         previewView: PreviewView,
+        lifecycleOwner: LifecycleOwner,
         onFrameAvailable: (ImageProxy) -> Unit,
         onError: (String) -> Unit
     ) {
@@ -33,7 +33,7 @@ class CameraManager(
         cameraProviderFuture.addListener({
             try {
                 cameraProvider = cameraProviderFuture.get()
-                bindCameraUseCases(previewView, onFrameAvailable, onError)
+                bindCameraUseCases(previewView, lifecycleOwner, onFrameAvailable, onError)
             } catch (e: Exception) {
                 Log.e(TAG, "Camera provider initialization failed", e)
                 onError("Camera initialization failed: ${e.message}")
@@ -43,6 +43,7 @@ class CameraManager(
 
     private fun bindCameraUseCases(
         previewView: PreviewView,
+        lifecycleOwner: LifecycleOwner,
         onFrameAvailable: (ImageProxy) -> Unit,
         onError: (String) -> Unit
     ) {

@@ -2,11 +2,11 @@ package com.billscanner.ui.composable
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.util.Log
 import android.view.ViewGroup
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.view.PreviewView
-import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -26,6 +26,8 @@ import androidx.core.content.ContextCompat
 import com.billscanner.data.camera.CameraManager
 import com.billscanner.domain.usecase.CaptureState
 import com.billscanner.ui.viewmodel.ScanViewModel
+
+private const val TAG = "ScanScreen"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,9 +58,9 @@ fun ScanScreen(
         }
     }
 
-    val cameraManager = remember {
-        CameraManager(context, lifecycleOwner)
-    }
+    var cameraError by remember { mutableStateOf<String?>(null) }
+
+    val cameraManager = remember { CameraManager(context) }
 
     DisposableEffect(Unit) {
         onDispose {
@@ -70,10 +72,7 @@ fun ScanScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        "BillScanner",
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text("BillScanner", fontWeight = FontWeight.Bold)
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -81,10 +80,7 @@ fun ScanScreen(
                 ),
                 actions = {
                     IconButton(onClick = onNavigateToReview) {
-                        Icon(
-                            Icons.Default.List,
-                            contentDescription = "Review scanned data"
-                        )
+                        Icon(Icons.Default.List, contentDescription = "Review scanned data")
                     }
                 }
             )
@@ -95,39 +91,80 @@ fun ScanScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // Camera Preview
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
                     .background(Color.Black)
             ) {
-                AndroidView(
-                    factory = { ctx ->
-                        PreviewView(ctx).apply {
-                            layoutParams = ViewGroup.LayoutParams(
-                                ViewGroup.LayoutParams.MATCH_PARENT,
-                                ViewGroup.LayoutParams.MATCH_PARENT
-                            )
-                            scaleType = PreviewView.ScaleType.FILL_CENTER
-                            implementationMode = PreviewView.ImplementationMode.COMPATIBLE
-                        }.also { previewView ->
+                if (hasPermission && cameraError == null) {
+                    AndroidView(
+                        factory = { ctx ->
+                            Log.d(TAG, "Creating PreviewView")
+                            val previewView = PreviewView(ctx).apply {
+                                layoutParams = ViewGroup.LayoutParams(
+                                    ViewGroup.LayoutParams.MATCH_PARENT,
+                                    ViewGroup.LayoutParams.MATCH_PARENT
+                                )
+                                scaleType = PreviewView.ScaleType.FILL_CENTER
+                            }
+                            previewView
+                        },
+                        modifier = Modifier.fillMaxSize(),
+                        onReset = {},
+                        onRelease = {},
+                        update = { previewView ->
+                            Log.d(TAG, "Starting camera")
                             cameraManager.startCamera(
                                 previewView = previewView,
+                                lifecycleOwner = lifecycleOwner,
                                 onFrameAvailable = { imageProxy ->
                                     viewModel.captureUseCase.onFrame(imageProxy)
                                 },
                                 onError = { error ->
-                                    // Error is handled via state
+                                    Log.e(TAG, "Camera error: $error")
+                                    cameraError = error
                                 }
                             )
                         }
-                    },
-                    modifier = Modifier.fillMaxSize()
-                )
+                    )
+                }
 
-                // Status overlay
-                androidx.compose.animation.AnimatedVisibility(
+                if (cameraError != null) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            Icons.Default.Error,
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp),
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            "Camera Error",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            cameraError ?: "",
+                            style = MaterialTheme.typography.bodyMedium,
+                            textAlign = TextAlign.Center,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(onClick = { cameraError = null }) {
+                            Text("Retry")
+                        }
+                    }
+                }
+
+                AnimatedVisibility(
                     visible = state is CaptureState.Processing,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -139,15 +176,14 @@ fun ScanScreen(
                     )
                 }
 
-                // Capture feedback
-                androidx.compose.animation.AnimatedVisibility(
+                AnimatedVisibility(
                     visible = state is CaptureState.Captured,
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .padding(16.dp)
                 ) {
-                    if (state is CaptureState.Captured) {
-                        val captured = state as CaptureState.Captured
+                    val currentState = state
+                    if (currentState is CaptureState.Captured) {
                         Surface(
                             color = MaterialTheme.colorScheme.primaryContainer,
                             shape = MaterialTheme.shapes.medium,
@@ -164,7 +200,7 @@ fun ScanScreen(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    "Captured ${captured.writtenCount} new record(s)",
+                                    "Captured ${currentState.writtenCount} new record(s)",
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                             }
@@ -172,15 +208,14 @@ fun ScanScreen(
                     }
                 }
 
-                // Error feedback
-                androidx.compose.animation.AnimatedVisibility(
+                AnimatedVisibility(
                     visible = state is CaptureState.Error,
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .padding(16.dp)
                 ) {
-                    if (state is CaptureState.Error) {
-                        val error = state as CaptureState.Error
+                    val currentState = state
+                    if (currentState is CaptureState.Error) {
                         Surface(
                             color = MaterialTheme.colorScheme.errorContainer,
                             shape = MaterialTheme.shapes.medium,
@@ -197,7 +232,7 @@ fun ScanScreen(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    error.message,
+                                    currentState.message,
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onErrorContainer
                                 )
@@ -207,7 +242,6 @@ fun ScanScreen(
                 }
 
                 if (!hasPermission) {
-                    // No permission view
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
@@ -244,10 +278,7 @@ fun ScanScreen(
                 }
             }
 
-            // Controls
-            Surface(
-                tonalElevation = 2.dp
-            ) {
+            Surface(tonalElevation = 2.dp) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -259,7 +290,6 @@ fun ScanScreen(
                             || state is CaptureState.Processing
                             || state is CaptureState.Captured
 
-                    // Pause/Resume button
                     FilledTonalButton(
                         onClick = {
                             if (isActive) viewModel.pauseScan() else viewModel.resumeScan()
@@ -273,19 +303,12 @@ fun ScanScreen(
                         Text(if (isActive) "Pause" else "Resume")
                     }
 
-                    // Reset button
-                    OutlinedButton(
-                        onClick = { viewModel.resetScan() }
-                    ) {
-                        Icon(
-                            Icons.Default.Refresh,
-                            contentDescription = null
-                        )
+                    OutlinedButton(onClick = { viewModel.resetScan() }) {
+                        Icon(Icons.Default.Refresh, contentDescription = null)
                         Spacer(modifier = Modifier.width(4.dp))
                         Text("Reset")
                     }
 
-                    // Frame counter
                     val currentState = state
                     val frameCount = when (currentState) {
                         is CaptureState.Processing -> currentState.frameCount
