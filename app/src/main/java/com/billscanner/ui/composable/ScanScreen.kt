@@ -17,7 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -110,7 +110,7 @@ fun ScanScreen(
                                 ViewGroup.LayoutParams.MATCH_PARENT
                             )
                             scaleType = PreviewView.ScaleType.FILL_CENTER
-                            implementationMode = PreviewView.ImplementationMode.PERFORMANCE
+                            implementationMode = PreviewView.ImplementationMode.COMPATIBLE
                         }.also { previewView ->
                             cameraManager.startCamera(
                                 previewView = previewView,
