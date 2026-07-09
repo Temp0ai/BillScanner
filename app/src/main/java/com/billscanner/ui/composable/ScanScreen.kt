@@ -102,111 +102,111 @@ fun ScanScreen(
                     .weight(1f)
                     .background(Color.Black)
             ) {
-                if (hasPermission) {
-                    AndroidView(
-                        factory = { ctx ->
-                            PreviewView(ctx).apply {
-                                layoutParams = ViewGroup.LayoutParams(
-                                    ViewGroup.LayoutParams.MATCH_PARENT,
-                                    ViewGroup.LayoutParams.MATCH_PARENT
-                                )
-                                scaleType = PreviewView.ScaleType.FILL_CENTER
-                                implementationMode = PreviewView.ImplementationMode.PERFORMANCE
-                            }.also { previewView ->
-                                cameraManager.startCamera(
-                                    previewView = previewView,
-                                    onFrameAvailable = { imageProxy ->
-                                        viewModel.captureUseCase.onFrame(imageProxy)
-                                    },
-                                    onError = { error ->
-                                        // Error is handled via state
-                                    }
-                                )
-                            }
-                        },
-                        modifier = Modifier.fillMaxSize()
+                AndroidView(
+                    factory = { ctx ->
+                        PreviewView(ctx).apply {
+                            layoutParams = ViewGroup.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                ViewGroup.LayoutParams.MATCH_PARENT
+                            )
+                            scaleType = PreviewView.ScaleType.FILL_CENTER
+                            implementationMode = PreviewView.ImplementationMode.PERFORMANCE
+                        }.also { previewView ->
+                            cameraManager.startCamera(
+                                previewView = previewView,
+                                onFrameAvailable = { imageProxy ->
+                                    viewModel.captureUseCase.onFrame(imageProxy)
+                                },
+                                onError = { error ->
+                                    // Error is handled via state
+                                }
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxSize()
+                )
+
+                // Status overlay
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = state is CaptureState.Processing,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.TopCenter)
+                ) {
+                    LinearProgressIndicator(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = MaterialTheme.colorScheme.primary
                     )
+                }
 
-                    // Status overlay
-                    AnimatedVisibility(
-                        visible = state is CaptureState.Processing,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .align(Alignment.TopCenter)
-                    ) {
-                        LinearProgressIndicator(
-                            modifier = Modifier.fillMaxWidth(),
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-
-                    // Capture feedback
-                    AnimatedVisibility(
-                        visible = state is CaptureState.Captured,
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .padding(16.dp)
-                    ) {
-                        if (state is CaptureState.Captured) {
-                            val captured = state as CaptureState.Captured
-                            Surface(
-                                color = MaterialTheme.colorScheme.primaryContainer,
-                                shape = MaterialTheme.shapes.medium,
-                                tonalElevation = 4.dp
+                // Capture feedback
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = state is CaptureState.Captured,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(16.dp)
+                ) {
+                    if (state is CaptureState.Captured) {
+                        val captured = state as CaptureState.Captured
+                        Surface(
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            shape = MaterialTheme.shapes.medium,
+                            tonalElevation = 4.dp
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        Icons.Default.CheckCircle,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        "Captured ${captured.writtenCount} new record(s)",
-                                        style = MaterialTheme.typography.bodyMedium
-                                    )
-                                }
+                                Icon(
+                                    Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    "Captured ${captured.writtenCount} new record(s)",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
                             }
                         }
                     }
+                }
 
-                    // Error feedback
-                    AnimatedVisibility(
-                        visible = state is CaptureState.Error,
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .padding(16.dp)
-                    ) {
-                        if (state is CaptureState.Error) {
-                            val error = state as CaptureState.Error
-                            Surface(
-                                color = MaterialTheme.colorScheme.errorContainer,
-                                shape = MaterialTheme.shapes.medium,
-                                tonalElevation = 4.dp
+                // Error feedback
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = state is CaptureState.Error,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(16.dp)
+                ) {
+                    if (state is CaptureState.Error) {
+                        val error = state as CaptureState.Error
+                        Surface(
+                            color = MaterialTheme.colorScheme.errorContainer,
+                            shape = MaterialTheme.shapes.medium,
+                            tonalElevation = 4.dp
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        Icons.Default.Error,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.error
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        error.message,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onErrorContainer
-                                    )
-                                }
+                                Icon(
+                                    Icons.Default.Error,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    error.message,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                )
                             }
                         }
                     }
-                } else {
+                }
+
+                if (!hasPermission) {
                     // No permission view
                     Column(
                         modifier = Modifier
