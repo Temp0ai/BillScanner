@@ -119,7 +119,8 @@ fun ScanScreen(
                                 previewView = previewView,
                                 lifecycleOwner = lifecycleOwner,
                                 onFrameAvailable = { imageProxy ->
-                                    viewModel.captureUseCase.onFrame(imageProxy)
+                                    viewModel.initCamera()
+                                    viewModel.getCaptureUseCase()?.onFrame(imageProxy)
                                 },
                                 onError = { error ->
                                     Log.e(TAG, "Camera error: $error")
