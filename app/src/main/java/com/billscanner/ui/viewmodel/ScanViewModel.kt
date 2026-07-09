@@ -7,13 +7,19 @@ import com.billscanner.data.storage.CsvRepository
 import com.billscanner.domain.usecase.CaptureUseCase
 import com.billscanner.domain.usecase.CaptureState
 import com.billscanner.domain.parser.ExtractedCustomer
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 class ScanViewModel(application: Application) : AndroidViewModel(application) {
 
     private val csvRepo = CsvRepository(application)
+    private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
     private var _useCase: CaptureUseCase? = null
 
@@ -30,7 +36,7 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
             val engine = OcrEngine()
             val uc = CaptureUseCase(engine, csvRepo)
             _useCase = uc
-            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main).launch {
+            scope.launch {
                 uc.state.collect { _captureState.value = it }
             }
         }
@@ -43,6 +49,7 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
 
     override fun onCleared() {
         super.onCleared()
+        scope.cancel()
         _useCase?.destroy()
     }
 }
