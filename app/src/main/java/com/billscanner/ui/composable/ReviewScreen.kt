@@ -158,6 +158,15 @@ private fun CustomerCard(customer: ExtractedCustomer) {
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
+                if (customer.totalAmount.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        "Total: \u20B9${customer.totalAmount}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
+                }
             }
             Surface(
                 color = if (customer.confidence >= 0.8f) {

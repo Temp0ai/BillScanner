@@ -12,7 +12,7 @@ class CsvRepository(private val context: Context) {
 
     companion object {
         private const val TAG = "CsvRepository"
-        private const val CSV_HEADER = "timestamp,name,phone,confidence\n"
+        private const val CSV_HEADER = "timestamp,name,phone,total_amount,confidence\n"
     }
 
     private fun getScansDir(): File {
@@ -62,7 +62,7 @@ class CsvRepository(private val context: Context) {
                         val ts = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())
                         val safeName = c.name.replace(",", ";").replace("\n", " ").replace("\r", "")
                         val confidenceStr = String.format(Locale.US, "%.2f", c.confidence)
-                        writer.write("$ts,$safeName,${c.phone},$confidenceStr\n")
+                        writer.write("$ts,$safeName,${c.phone},${c.totalAmount},$confidenceStr\n")
                         existing.add(c.phone)
                         written++
                     }
@@ -86,7 +86,8 @@ class CsvRepository(private val context: Context) {
                     ExtractedCustomer(
                         name = cols[1].trim(),
                         phone = cols[2].trim(),
-                        confidence = cols.getOrNull(3)?.trim()?.toFloatOrNull() ?: 0f
+                        totalAmount = cols.getOrNull(3)?.trim() ?: "",
+                        confidence = cols.getOrNull(4)?.trim()?.toFloatOrNull() ?: 0f
                     )
                 } else null
             }

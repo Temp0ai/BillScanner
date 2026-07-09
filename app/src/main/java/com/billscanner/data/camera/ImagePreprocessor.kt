@@ -10,14 +10,46 @@ object ImagePreprocessor {
     private const val TAG = "ImagePreprocessor"
 
     fun toBitmap(imageProxy: ImageProxy): Bitmap {
-        val buffer: ByteBuffer = imageProxy.planes[0].buffer
-        val bytes = ByteArray(buffer.remaining())
-        buffer.get(bytes)
-
-        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-            ?: throw IllegalStateException("Failed to decode image from buffer")
-
+        val bitmap = yuv420ToBitmap(imageProxy)
+            ?: throw IllegalStateException("Failed to convert image to bitmap")
         return enhanceForOcr(bitmap)
+    }
+
+    private fun yuv420ToBitmap(imageProxy: ImageProxy): Bitmap? {
+        try {
+            val nv21 = yuv420ToNv21(imageProxy) ?: return null
+            val yuvImage = YuvImage(nv21, ImageFormat.NV21, imageProxy.width, imageProxy.height, null)
+            val out = java.io.ByteArrayOutputStream()
+            yuvImage.compressToJpeg(Rect(0, 0, imageProxy.width, imageProxy.height), 90, out)
+            val jpegBytes = out.toByteArray()
+            return BitmapFactory.decodeByteArray(jpegBytes, 0, jpegBytes.size)
+        } catch (e: Exception) {
+            Log.e(TAG, "YUV conversion failed", e)
+            return null
+        }
+    }
+
+    private fun yuv420ToNv21(imageProxy: ImageProxy): ByteArray? {
+        try {
+            val yBuffer = imageProxy.planes[0].buffer
+            val uBuffer = imageProxy.planes[1].buffer
+            val vBuffer = imageProxy.planes[2].buffer
+
+            val ySize = yBuffer.remaining()
+            val uSize = uBuffer.remaining()
+            val vSize = vBuffer.remaining()
+
+            val nv21 = ByteArray(ySize + uSize + vSize)
+
+            yBuffer.get(nv21, 0, ySize)
+            vBuffer.get(nv21, ySize, vSize)
+            uBuffer.get(nv21, ySize + vSize, uSize)
+
+            return nv21
+        } catch (e: Exception) {
+            Log.e(TAG, "NV21 conversion failed", e)
+            return null
+        }
     }
 
     private fun enhanceForOcr(original: Bitmap): Bitmap {
@@ -25,7 +57,6 @@ object ImagePreprocessor {
         val height = original.height
         val config = original.config ?: Bitmap.Config.ARGB_8888
 
-        // Increase contrast
         val enhanced = Bitmap.createBitmap(width, height, config)
         val canvas = Canvas(enhanced)
         val paint = Paint().apply {
@@ -49,7 +80,6 @@ object ImagePreprocessor {
             original.recycle()
         }
 
-        // Convert to grayscale
         val grayscale = Bitmap.createBitmap(width, height, config)
         val gCanvas = Canvas(grayscale)
         val gPaint = Paint().apply {
