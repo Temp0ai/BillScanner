@@ -164,7 +164,7 @@ fun ScanScreen(
                     }
                 }
 
-                AnimatedVisibility(
+                androidx.compose.animation.AnimatedVisibility(
                     visible = state is CaptureState.Processing,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -176,7 +176,7 @@ fun ScanScreen(
                     )
                 }
 
-                AnimatedVisibility(
+                androidx.compose.animation.AnimatedVisibility(
                     visible = state is CaptureState.Captured,
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
@@ -208,7 +208,7 @@ fun ScanScreen(
                     }
                 }
 
-                AnimatedVisibility(
+                androidx.compose.animation.AnimatedVisibility(
                     visible = state is CaptureState.Error,
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
