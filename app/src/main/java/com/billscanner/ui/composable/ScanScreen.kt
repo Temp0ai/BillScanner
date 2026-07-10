@@ -173,15 +173,13 @@ fun ScanScreen(
                     }
                 }
 
-                androidx.compose.animation.AnimatedVisibility(
-                    visible = state is CaptureState.Processing,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.TopCenter)
-                ) {
-                    LinearProgressIndicator(
-                        modifier = Modifier.fillMaxWidth(),
-                        color = MaterialTheme.colorScheme.primary
+                if (state is CaptureState.Processing) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(3.dp)
+                            .align(Alignment.TopCenter)
+                            .background(MaterialTheme.colorScheme.primary)
                     )
                 }
 
