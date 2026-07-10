@@ -61,7 +61,12 @@ class CameraManager(
             .build()
             .also { analysis ->
                 analysis.setAnalyzer(analysisExecutor) { imageProxy ->
-                    onFrameAvailable(imageProxy)
+                    try {
+                        onFrameAvailable(imageProxy)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Analyzer callback crashed", e)
+                        try { imageProxy.close() } catch (_: Exception) {}
+                    }
                 }
             }
 

@@ -116,8 +116,14 @@ fun ScanScreen(
                                     previewView = previewView,
                                     lifecycleOwner = lifecycleOwner,
                                     onFrameAvailable = { imageProxy ->
-                                        viewModel.initCamera()
-                                        viewModel.getCaptureUseCase()?.onFrame(imageProxy)
+                                        try {
+                                            viewModel.initCamera()
+                                            viewModel.getCaptureUseCase()?.onFrame(imageProxy)
+                                                ?: imageProxy.close()
+                                        } catch (e: Exception) {
+                                            Log.e(TAG, "Frame processing crashed", e)
+                                            try { imageProxy.close() } catch (_: Exception) {}
+                                        }
                                     },
                                     onError = { error ->
                                         Log.e(TAG, "Camera error: $error")
@@ -177,6 +183,36 @@ fun ScanScreen(
                         modifier = Modifier.fillMaxWidth(),
                         color = MaterialTheme.colorScheme.primary
                     )
+                }
+
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = state is CaptureState.Paused,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.TopCenter)
+                ) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.9f),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Pause,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onTertiaryContainer
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                "Scan Paused",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer
+                            )
+                        }
+                    }
                 }
 
                 androidx.compose.animation.AnimatedVisibility(

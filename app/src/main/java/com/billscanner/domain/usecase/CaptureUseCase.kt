@@ -56,49 +56,54 @@ class CaptureUseCase(
         }
         lastProcessedAt = now
 
-        scope.launch {
-            try {
-                _state.value = CaptureState.Processing(frameCount)
+        try {
+            scope.launch {
+                try {
+                    _state.value = CaptureState.Processing(frameCount)
 
-                // 1. Convert ImageProxy to preprocessed Bitmap
-                val bitmap: Bitmap = withContext(Dispatchers.Default) {
-                    ImagePreprocessor.toBitmap(imageProxy)
-                }
-
-                // 2. Run OCR
-                val ocrResult = ocrEngine.processBitmap(bitmap)
-                bitmap.recycle()
-
-                ocrResult.fold(
-                    onSuccess = { text ->
-                        // 3. Parse structured data
-                        val customers = parser.parse(text)
-
-                        if (customers.isNotEmpty()) {
-                            // 4. Append to CSV
-                            val written = withContext(Dispatchers.IO) {
-                                csvRepository.append(customers)
-                            }
-                            frameCount++
-                            Log.d(TAG, "Captured ${customers.size} customers, $written new written")
-                            _state.value = CaptureState.Captured(customers, written, frameCount)
-                        } else {
-                            _state.value = CaptureState.Processing(frameCount)
-                        }
-                    },
-                    onFailure = { e ->
-                        Log.e(TAG, "OCR failed", e)
-                        _state.value = CaptureState.Error("OCR failed: ${e.message}", frameCount)
+                    // 1. Convert ImageProxy to preprocessed Bitmap
+                    val bitmap: Bitmap = withContext(Dispatchers.Default) {
+                        ImagePreprocessor.toBitmap(imageProxy)
                     }
-                )
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Log.e(TAG, "Unexpected error", e)
-                _state.value = CaptureState.Error("Unexpected: ${e.message}", frameCount)
-            } finally {
-                imageProxy.close()
+
+                    // 2. Run OCR
+                    val ocrResult = ocrEngine.processBitmap(bitmap)
+                    bitmap.recycle()
+
+                    ocrResult.fold(
+                        onSuccess = { text ->
+                            // 3. Parse structured data
+                            val customers = parser.parse(text)
+
+                            if (customers.isNotEmpty()) {
+                                // 4. Append to CSV
+                                val written = withContext(Dispatchers.IO) {
+                                    csvRepository.append(customers)
+                                }
+                                frameCount++
+                                Log.d(TAG, "Captured ${customers.size} customers, $written new written")
+                                _state.value = CaptureState.Captured(customers, written, frameCount)
+                            } else {
+                                _state.value = CaptureState.Processing(frameCount)
+                            }
+                        },
+                        onFailure = { e ->
+                            Log.e(TAG, "OCR failed", e)
+                            _state.value = CaptureState.Error("OCR failed: ${e.message}", frameCount)
+                        }
+                    )
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Log.e(TAG, "Unexpected error in frame processing", e)
+                    _state.value = CaptureState.Error("Unexpected: ${e.message}", frameCount)
+                } finally {
+                    imageProxy.close()
+                }
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to launch frame coroutine", e)
+            imageProxy.close()
         }
     }
 
@@ -114,7 +119,8 @@ class CaptureUseCase(
     }
 
     fun reset() {
-        pause()
+        isPaused = false
+        lastProcessedAt = 0L
         frameCount = 0
         _state.value = CaptureState.Idle
     }
