@@ -15,14 +15,20 @@ class OcrEngine {
         private const val TAG = "OcrEngine"
     }
 
-    private val recognizer: TextRecognizer =
-        TextRecognition.getClient(ChineseTextRecognizerOptions.Builder().build())
+    private val recognizer: TextRecognizer
+
+    init {
+        Log.d(TAG, "Creating ChineseTextRecognizer...")
+        recognizer = TextRecognition.getClient(ChineseTextRecognizerOptions.Builder().build())
+        Log.d(TAG, "ChineseTextRecognizer created OK")
+    }
 
     suspend fun processBitmap(bitmap: Bitmap): Result<Text> {
         return try {
+            Log.d(TAG, "Processing bitmap ${bitmap.width}x${bitmap.height}...")
             val inputImage = InputImage.fromBitmap(bitmap, 0)
             val result = recognizer.process(inputImage).await()
-            Log.d(TAG, "OCR processed: ${result.textBlocks.size} blocks found")
+            Log.d(TAG, "OCR done: ${result.textBlocks.size} blocks")
             Result.success(result)
         } catch (e: Exception) {
             Log.e(TAG, "OCR processing failed", e)
