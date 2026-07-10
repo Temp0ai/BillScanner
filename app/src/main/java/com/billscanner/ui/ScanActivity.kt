@@ -1,5 +1,7 @@
 package com.billscanner.ui
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -91,10 +93,9 @@ fun CrashLogDialog(log: String, onDismiss: () -> Unit) {
         },
         confirmButton = {
             TextButton(onClick = {
-                val clip = android.content.ClipData.newPlainText("crash", log)
-                android.content.ClipboardManager::class.java
-                    .getSystemService(context, android.content.ClipboardManager::class.java)
-                    ?.setPrimaryClip(clip)
+                val clipboard = context.getSystemService(ClipboardManager::class.java)
+                val clip = ClipData.newPlainText("crash", log)
+                clipboard?.setPrimaryClip(clip)
                 Toast.makeText(context, "Copied to clipboard", Toast.LENGTH_SHORT).show()
             }) {
                 Text("Copy")
