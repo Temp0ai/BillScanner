@@ -134,8 +134,9 @@ class OcrParser {
                     .replace(Regex("""mob[:\s]*\d+""", RegexOption.IGNORE_CASE), "")
                     .replace(Regex("""no\.?[:\s]*\d+""", RegexOption.IGNORE_CASE), "")
                     .replace(Regex("""date[:\s]*\S+""", RegexOption.IGNORE_CASE), "")
+                    .replace(Regex("""^[:\s.,-]+"""), "")
                     .trim()
-                if (name.length >= 2 && !name.matches(Regex("""^[\d\s\-+().]+$"""))) {
+                if (name.length >= 3 && !name.matches(Regex("""^[\d\s\-+().,:]+$"""))) {
                     return name
                 }
             }
@@ -170,7 +171,7 @@ class OcrParser {
             if (line == phoneLine) continue
             if (phoneRegex.containsMatchIn(line)) continue
             val cleaned = line.trim()
-            if (cleaned.length >= 2 && !cleaned.matches(Regex("""^[\d\s\-+().]+$"""))) {
+            if (cleaned.length >= 3 && !cleaned.matches(Regex("""^[\d\s\-+().,:]+$"""))) {
                 return cleaned
             }
         }

@@ -3,4 +3,7 @@
     <files-path
         name="scans"
         path="scans/"/>
+    <cache-path
+        name="cache"
+        path="."/>
 </paths>
