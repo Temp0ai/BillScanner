@@ -12,7 +12,7 @@ class CsvRepository(private val context: Context) {
 
     companion object {
         private const val TAG = "CsvRepository"
-        private const val CSV_HEADER = "timestamp,name,phone,total_amount,confidence\n"
+        private const val CSV_HEADER = "timestamp,name,phone,total_amount,date,confidence\n"
     }
 
     private fun getScansDir(): File {
@@ -62,7 +62,7 @@ class CsvRepository(private val context: Context) {
                         val ts = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())
                         val safeName = c.name.replace(",", ";").replace("\n", " ").replace("\r", "")
                         val confidenceStr = String.format(Locale.US, "%.2f", c.confidence)
-                        writer.write("$ts,$safeName,${c.phone},${c.totalAmount},$confidenceStr\n")
+                        writer.write("$ts,$safeName,${c.phone},${c.totalAmount},${c.date},$confidenceStr\n")
                         existing.add(c.phone)
                         written++
                     }
@@ -87,7 +87,8 @@ class CsvRepository(private val context: Context) {
                         name = cols[1].trim(),
                         phone = cols[2].trim(),
                         totalAmount = cols.getOrNull(3)?.trim() ?: "",
-                        confidence = cols.getOrNull(4)?.trim()?.toFloatOrNull() ?: 0f
+                        date = cols.getOrNull(4)?.trim() ?: "",
+                        confidence = cols.getOrNull(5)?.trim()?.toFloatOrNull() ?: 0f
                     )
                 } else null
             }
@@ -107,6 +108,39 @@ class CsvRepository(private val context: Context) {
             if (file.delete()) {
                 Log.d(TAG, "Deleted ${file.name}")
             }
+        }
+    }
+
+    fun getAllCsvContent(): String {
+        val sb = StringBuilder()
+        sb.appendLine(CSV_HEADER.trim())
+        for (file in getAllCsvFiles().sortedBy { it.name }) {
+            try {
+                file.readLines().drop(1).forEach { line ->
+                    sb.appendLine(line)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error reading file: ${file.name}", e)
+            }
+        }
+        return sb.toString()
+    }
+
+    fun getShareIntent(): android.content.Intent? {
+        val csv = getAllCsvContent()
+        if (csv.isBlank()) return null
+        val dateStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
+        val fileName = "BillScanner_$dateStamp.csv"
+        val cacheFile = java.io.File(context.cacheDir, fileName)
+        cacheFile.writeText(csv)
+        val uri = androidx.core.content.FileProvider.getUriForFile(
+            context, "${context.packageName}.fileprovider", cacheFile
+        )
+        return android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+            type = "text/csv"
+            putExtra(android.content.Intent.EXTRA_STREAM, uri)
+            putExtra(android.content.Intent.EXTRA_SUBJECT, "BillScanner Export")
+            addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
     }
 }

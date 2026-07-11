@@ -34,6 +34,8 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
 
     fun exportCsvPath(): String? = csvRepo.getCurrentFilePath()
 
+    fun getShareIntent() = csvRepo.getShareIntent()
+
     fun initCamera() {
         if (_useCase != null || ocrFailed) return
         try {
