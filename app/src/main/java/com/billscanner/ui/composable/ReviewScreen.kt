@@ -2,6 +2,8 @@ package com.billscanner.ui.composable
 
 import android.content.Intent
 import android.widget.Toast
+import android.content.Intent
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -25,6 +27,7 @@ fun ReviewScreen(
     viewModel: ScanViewModel,
     onBack: () -> Unit
 ) {
+    val context = LocalContext.current
     val results = remember { mutableStateOf(viewModel.sessionResults) }
 
     Scaffold(
@@ -80,19 +83,28 @@ fun ReviewScreen(
                             fontWeight = FontWeight.Bold
                         )
                     }
-                    viewModel.exportCsvPath()?.let { path ->
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text(
-                                "CSV File",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                            )
-                            Text(
-                                path.substringAfterLast("/"),
-                                style = MaterialTheme.typography.bodySmall
-                            )
+                        viewModel.exportCsvPath()?.let { path ->
+                            Column(horizontalAlignment = Alignment.End) {
+                                Text(
+                                    "CSV File",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                )
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        path.substringAfterLast("/"),
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                    IconButton(onClick = {
+                                        viewModel.getShareIntent()?.let { intent ->
+                                            context.startActivity(Intent.createChooser(intent, "Export CSV"))
+                                        } ?: Toast.makeText(context, "No data to export", Toast.LENGTH_SHORT).show()
+                                    }) {
+                                        Icon(Icons.Default.Share, contentDescription = "Share CSV", modifier = Modifier.size(16.dp))
+                                    }
+                                }
+                            }
                         }
-                    }
                 }
             }
 

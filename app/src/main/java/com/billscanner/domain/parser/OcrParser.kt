@@ -75,13 +75,11 @@ class OcrParser {
             for (line in allLines) {
                 val phoneMatch = findPhone(line)
                 if (phoneMatch != null) {
-                    val nearbyName = findNearbyName(allLines, line)
-                    if (nearbyName != null) {
-                        val total = extractTotal(fullText, allLines)
-                        val date = extractDate(fullText, allLines)
-                        customers.add(Triple(nearbyName, phoneMatch, "$total|$date"))
-                        Log.d(TAG, "Fallback match: $nearbyName / $phoneMatch / $total / $date")
-                    }
+                    val nearbyName = findNearbyName(allLines, line) ?: "Unknown Customer"
+                    val total = extractTotal(fullText, allLines)
+                    val date = extractDate(fullText, allLines)
+                    customers.add(Triple(nearbyName, phoneMatch, "$total|$date"))
+                    Log.d(TAG, "Phone-first match: $nearbyName / $phoneMatch / $total / $date")
                 }
             }
         }
@@ -89,13 +87,11 @@ class OcrParser {
         if (customers.isEmpty()) {
             val singlePhone = findPhone(fullText)
             if (singlePhone != null) {
-                val singleName = findNameFromFullText(fullText)
+                val singleName = findNameFromFullText(fullText) ?: "Unknown Customer"
                 val total = extractTotal(fullText, allLines)
                 val date = extractDate(fullText, allLines)
-                if (singleName != null) {
-                    customers.add(Triple(singleName, singlePhone, "$total|$date"))
-                    Log.d(TAG, "FullText match: $singleName / $singlePhone / $total / $date")
-                }
+                customers.add(Triple(singleName, singlePhone, "$total|$date"))
+                Log.d(TAG, "FullText match: $singleName / $singlePhone / $total / $date")
             }
         }
 
