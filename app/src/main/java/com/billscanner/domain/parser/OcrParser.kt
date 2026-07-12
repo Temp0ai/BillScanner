@@ -15,6 +15,8 @@ class OcrParser {
 
     companion object {
         private const val TAG = "OcrParser"
+        private val SHOP_PHONE_BLACKLIST = setOf("7219473436")
+        private val SHOP_KEYWORDS = setOf("MERAKI", "BHARTI JAIN", "PUNE", "SAYALI")
     }
 
     private val phoneRegex = Regex(
@@ -118,7 +120,10 @@ class OcrParser {
     private fun findPhone(text: String): String? {
         val match = phoneRegex.find(text) ?: return null
         val digits = match.groupValues[1].replace("\\s".toRegex(), "")
-        return if (digits.length == 10) digits else null
+        if (digits.length == 10 && digits !in SHOP_PHONE_BLACKLIST) {
+            return digits
+        }
+        return null
     }
 
     private fun extractName(line: String): String? {
@@ -170,6 +175,7 @@ class OcrParser {
             val line = lines[i]
             if (line == phoneLine) continue
             if (phoneRegex.containsMatchIn(line)) continue
+            if (SHOP_KEYWORDS.any { line.contains(it, ignoreCase = true) }) continue
             val cleaned = line.trim()
             if (cleaned.length >= 3 && !cleaned.matches(Regex("""^[\d\s\-+().,:]+$"""))) {
                 return cleaned
